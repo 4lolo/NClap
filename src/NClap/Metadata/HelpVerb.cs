@@ -4,13 +4,14 @@ using System.Linq;
 using NClap.ConsoleInput;
 using NClap.Parser;
 using NClap.Utilities;
+using NClap.Repl;
 
 namespace NClap.Metadata
 {
     /// <summary>
-    /// Static class useful for configuring the behavior of help verbs.
+    /// Verb for display help about the verbs available.
     /// </summary>
-    public static class HelpVerb
+    internal class HelpVerb : IVerb
     {
         /// <summary>
         /// The default options to use for generate usage info.
@@ -22,21 +23,13 @@ namespace NClap.Metadata
         /// The output handler function for this class.
         /// </summary>
         public static Action<ColoredMultistring> OutputHandler { get; set; }
-    }
 
-    /// <summary>
-    /// Verb for display help about the verbs available.
-    /// </summary>
-    /// <typeparam name="TVerbType">The verb type.</typeparam>
-    internal class HelpVerb<TVerbType> : IVerb
-        where TVerbType : struct
-    {
         /// <summary>
         /// Optionally specifies the verb to retrieve detailed help information
         /// for.
         /// </summary>
         [PositionalArgument(ArgumentFlags.AtMostOnce, HelpText = "Verb to get detailed help information for.")]
-        public TVerbType? Verb { get; set; }
+        public string Verb { get; set; }
 
         /// <summary>
         /// Options for displaying help.
@@ -48,31 +41,31 @@ namespace NClap.Metadata
         /// Displays help about the available verbs.
         /// </summary>
         /// <param name="context"></param>
-        public void Execute(object context)
+        public void Execute(ILoop loop, object context)
         {
             var outputHandler = HelpVerb.OutputHandler ?? BasicConsoleInputAndOutput.Default.Write;
 
-            if (Verb.HasValue)
+            if (Verb != null)
             {
-                DisplayVerbHelp(outputHandler, Verb.Value);
+                DisplayVerbHelp(loop, outputHandler, Verb);
             }
             else
             {
-                DisplayGeneralHelp(outputHandler);
+                DisplayGeneralHelp(loop, outputHandler);
             }
         }
 
-        private static void DisplayGeneralHelp(Action<ColoredMultistring> outputHandler)
+        private static void DisplayGeneralHelp(ILoop loop, Action<ColoredMultistring> outputHandler)
         {
-            var verbNames = typeof(TVerbType).GetEnumValues()
-                .Cast<TVerbType>()
-                .OrderBy(type => type.ToString(), StringComparer.CurrentCultureIgnoreCase);
+            var verbNames = loop.Verbs
+                .Select(v => v.Name)
+                .OrderBy(v => v, StringComparer.CurrentCultureIgnoreCase);
 
             var verbNameMaxLen = verbNames.Max(name => name.ToString().Length);
 
             var verbSummary = string.Concat(verbNames.Select(verbType =>
             {
-                var helpText = GetHelpText(verbType);
+                var helpText = GetHelpText(loop, verbType);
 
                 var formatString = "  {0,-" + verbNameMaxLen.ToString(CultureInfo.InvariantCulture) + "}{1}\n";
                 return string.Format(
@@ -85,10 +78,10 @@ namespace NClap.Metadata
             outputHandler(string.Format(CultureInfo.CurrentCulture, Strings.ValidVerbsHeader, verbSummary));
         }
 
-        private static void DisplayVerbHelp(Action<ColoredMultistring> outputHandler, TVerbType verb)
+        private static void DisplayVerbHelp(ILoop loop, Action<ColoredMultistring> outputHandler, string verb)
         {
-            var attrib = GetVerbAttribute(verb);
-            var implementingType = attrib.GetImplementingType(typeof(TVerbType));
+            var attrib = GetVerbDescriptor(loop, verb);
+            var implementingType = attrib.ImplementingType;
             if (implementingType == null)
             {
                 outputHandler(Strings.NoHelpAvailable + Environment.NewLine);
@@ -107,17 +100,16 @@ namespace NClap.Metadata
             outputHandler(usageInfo);
         }
 
-        private static string GetHelpText<T>(T value) where T : struct
+        private static string GetHelpText(ILoop loop, string value)
         {
-            var attrib = GetVerbAttribute(value);
+            var attrib = GetVerbDescriptor(loop, value);
             var helpText = attrib?.HelpText;
             return !string.IsNullOrEmpty(helpText) ? helpText : null;
         }
 
-        private static VerbAttribute GetVerbAttribute<T>(T value) =>
-            typeof(T).GetField(value.ToString())
-                     .GetCustomAttributes(typeof(VerbAttribute), false)
-                     .Cast<VerbAttribute>()
-                     .SingleOrDefault();
+        private static VerbDescriptor GetVerbDescriptor(ILoop loop, string value)
+        {
+            return loop.Verbs.SingleOrDefault(v => v.Key == value.ToLowerInvariant());
+        }
     }
 }

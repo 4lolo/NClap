@@ -109,13 +109,14 @@
     <Compile Include="Parser\UsageInfoOptions.cs" />
     <Compile Include="Repl\ConsoleLoopClient.cs" />
     <Compile Include="ConsoleInput\ConsoleReader.cs" />
+    <Compile Include="Repl\ILoop.cs" />
     <Compile Include="Repl\ILoopClient.cs" />
     <Compile Include="Metadata\IVerb`1.cs" />
     <Compile Include="Repl\Loop`1.cs" />
-    <Compile Include="Repl\Loop`2.cs" />
-    <Compile Include="Metadata\VerbAttribute.cs" />
+    <Compile Include="Metadata\VerbDescriptor.cs" />
     <Compile Include="Repl\LoopInputOutputParameters.cs" />
     <Compile Include="Repl\LoopOptions.cs" />
+    <Compile Include="Repl\Loop.cs" />
     <Compile Include="Strings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -165,10 +166,11 @@
     <Compile Include="Utilities\Token.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\NClap.snk" />
     <None Include="NClap.nuspec">
       <SubType>Designer</SubType>
     </None>
+    <None Include="NClap.snk" />
+    <None Include="NClap.snk.pfx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

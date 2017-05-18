@@ -1,4 +1,6 @@
-﻿namespace NClap.Metadata
+﻿using NClap.Repl;
+
+namespace NClap.Metadata
 {
     /// <summary>
     /// Represents a verb/command in the REPL.
@@ -11,6 +13,6 @@
         /// Executes the verb.
         /// </summary>
         /// <param name="context">The context for the verb.</param>
-        void Execute(TContext context);
+        void Execute(ILoop loop, TContext context);
     }
 }

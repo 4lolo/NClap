@@ -10,20 +10,8 @@ namespace NClap.Repl.TestApp
 {
     enum VerbType
     {
-        [HelpVerb(HelpText = "Displays verb help")]
-        Help,
-
-        [Verb(typeof(Here), HelpText = "Simple here command")]
-        Here,
-
-        [Verb(typeof(HereToo), HelpText = "Here too, right?")]
-        HereToo,
-
-        [Verb(typeof(SetPrompt))]
-        SetPromptXy,
-
-        [Verb(Exits = true, HelpText = "Exits the loop")]
-        Exit
+        Verb1,
+        Verb2
     }
 
     class SetPrompt
@@ -49,7 +37,7 @@ namespace NClap.Repl.TestApp
 
         [PositionalArgument(ArgumentFlags.Required)] public FileSystemPath Path { get; set; }
 
-        public void Execute(object o)
+        public void Execute(ILoop loop, object o)
         {
         }
     }
@@ -64,13 +52,22 @@ namespace NClap.Repl.TestApp
     {
         [PositionalArgument(ArgumentFlags.Required, Completer = typeof(SomeArgCompleter))] public string SomeArg { get; set; }
 
-        public void Execute(object o)
+        public void Execute(ILoop loop, object o)
         {
         }
     }
 
     class Program
     {
+        private static VerbDescriptor[] verbs =
+        {
+            new HelpVerbDescriptor { Name = "Help", HelpText = "Displays verb help" },
+            new VerbDescriptor { Name = "Here", ImplementingType = typeof(Here), HelpText = "Simple here command" },
+            new VerbDescriptor { Name = "HereToo", ImplementingType = typeof(HereToo), HelpText = "Here too, right?" },
+            new VerbDescriptor { Name = "SetPromptXy", ImplementingType = typeof(SetPrompt) },
+            new VerbDescriptor { Name = "Exit", Exits = true, HelpText = "Exits the loop" }
+        };
+
         private static int Main(string[] args)
         {
             var programArgs = new ProgramArguments();
@@ -103,7 +100,7 @@ namespace NClap.Repl.TestApp
                 KeyBindingSet = keyBindingSet
             };
 
-            Loop<VerbType>.Execute(parameters, options);
+            Loop.Execute(verbs, parameters, options);
 
             Console.WriteLine("Exited loop.");
         }

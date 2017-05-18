@@ -5,16 +5,17 @@ namespace NClap.Metadata
     /// <summary>
     /// Attribute for annotating help verbs.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Field)]
-    public sealed class HelpVerbAttribute : VerbAttribute
+    public sealed class HelpVerbDescriptor : VerbDescriptor
     {
         /// <summary>
         /// Gets the type that "implements" this verb.
         /// </summary>
-        /// <param name="verbType">The type of the verb associated with this
         /// attribute.</param>
         /// <returns>The type.</returns>
-        public override Type GetImplementingType(Type verbType) =>
-            typeof(HelpVerb<>).MakeGenericType(verbType);
+        public override Type ImplementingType
+        {
+            get { return typeof(HelpVerb); }
+            set {}
+        }
     }
 }

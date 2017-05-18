@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using NClap.ConsoleInput;
 using NClap.Utilities;
+using System;
 
 namespace NClap.Repl
 {
