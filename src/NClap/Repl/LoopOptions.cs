@@ -16,6 +16,11 @@ namespace NClap.Repl
         /// <summary>
         /// Function that resolves provided type instance
         /// </summary>
-        public Func<Type, IVerb> Resolver { get;set; }
+        public Func<Type, IVerb> Resolve { get; set; }
+
+        /// <summary>
+        /// Function that resolves provided type instance
+        /// </summary>
+        public Action<IVerb> Release { get; set; }
     }
 }

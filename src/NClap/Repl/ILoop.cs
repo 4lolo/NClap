@@ -10,7 +10,7 @@ namespace NClap.Repl
         ILoopClient Client { get; }
         IConsoleReader ConsoleReader { get; }
         char? EndOfLineCommentCharacter { get; }
-        Func<Type, IVerb> Resolver { get; }
+        Func<Type, IVerb> Resolve { get; }
         IEnumerable<VerbDescriptor> Verbs { get; }
     }
 }

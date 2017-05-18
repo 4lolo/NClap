@@ -408,7 +408,7 @@ namespace NClap.Parser
         /// <returns>The candidate completions for the specified token.
         /// </returns>
         public static IEnumerable<string> GetCompletions(Type type, IEnumerable<string> tokens, int indexOfTokenToComplete, CommandLineParserOptions options) =>
-            GetCompletions(type, tokens, indexOfTokenToComplete, options, null /* object factory */);
+            GetCompletions(type, tokens, indexOfTokenToComplete, options, null /* object factory */, null);
 
         /// <summary>
         /// Generate possible completions for the specified set of command-line
@@ -419,19 +419,19 @@ namespace NClap.Parser
         /// <param name="indexOfTokenToComplete">Index of the token to complete.
         /// </param>
         /// <param name="options">Parsing options.</param>
-        /// <param name="destObjectFactory">If non-null, provides a factory
+        /// <param name="destObjectResolve">If non-null, provides a factory
         /// function that can be used to create an object suitable to being
         /// filled out by this parser instance.</param>
         /// <returns>The candidate completions for the specified token.
         /// </returns>
-        public static IEnumerable<string> GetCompletions(Type type, IEnumerable<string> tokens, int indexOfTokenToComplete, CommandLineParserOptions options, Func<object> destObjectFactory)
+        public static IEnumerable<string> GetCompletions(Type type, IEnumerable<string> tokens, int indexOfTokenToComplete, CommandLineParserOptions options, Func<object> destObjectResolve, Action<object> destObjectRelease)
         {
             var engine = new CommandLineParserEngine(
                 type,
                 null /* default values */,
                 options);
 
-            return engine.GetCompletions(tokens, indexOfTokenToComplete, destObjectFactory);
+            return engine.GetCompletions(tokens, indexOfTokenToComplete, destObjectResolve, destObjectRelease);
         }
 
         /// <summary>

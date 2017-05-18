@@ -80,7 +80,8 @@ namespace NClap.Repl
         private Loop(IEnumerable<VerbDescriptor> verbs, LoopOptions options, TContext context)
         {
             EndOfLineCommentCharacter = options?.EndOfLineCommentCharacter;
-            Resolver = options?.Resolver ?? DefaultResolver;
+            Resolve = options?.Resolve ?? DefaultResolve;
+            Release = options?.Release ?? DefaultRelease;
 
             _context = context;
 
@@ -105,7 +106,12 @@ namespace NClap.Repl
         /// <summary>
         /// Function that resolves provided type instance
         /// </summary>
-        public Func<Type, IVerb> Resolver { get; set; }
+        public Func<Type, IVerb> Resolve { get; set; }
+
+        /// <summary>
+        /// Function that releases verb instance
+        /// </summary>
+        public Action<IVerb> Release { get; set; }
 
         /// <summary>
         /// Verbs list for help
@@ -170,15 +176,14 @@ namespace NClap.Repl
                 return emptyCompletions();
             }
 
-            Func<object> parsedObjectFactory = () => Resolver?.Invoke(implementingType);
-
             var options = new CommandLineParserOptions { Context = _context };
             return CommandLineParser.GetCompletions(
                 implementingType,
                 tokenList.Skip(1),
                 indexOfTokenToComplete - 1,
                 options,
-                parsedObjectFactory);
+                () => Resolve(implementingType),
+                (v) => Release((IVerb)v));
         }
 
         private bool ExecuteOnce()
@@ -264,32 +269,44 @@ namespace NClap.Repl
             var implementingType = attrib.ImplementingType;
             if (implementingType != null)
             {
-                var verb = Resolver?.Invoke(implementingType) as IVerb;
-                if (verb == null)
+                IVerb verb = null;
+                try
                 {
-                    Client.OnError(string.Format(CultureInfo.CurrentCulture, Strings.ImplementingTypeNotIVerb, implementingType.FullName, typeof(IVerb).FullName));
-                    return true;
+                    verb = Resolve.Invoke(implementingType);
+
+                    if (verb == null)
+                    {
+                        Client.OnError(string.Format(CultureInfo.CurrentCulture, Strings.ImplementingTypeNotIVerb, implementingType.FullName, typeof(IVerb).FullName));
+                        return true;
+                    }
+
+                    var options = new CommandLineParserOptions
+                    {
+                        Context = _context,
+                        Reporter = error => Client.OnError(error.ToString().TrimEnd())
+                    };
+
+                    if (!CommandLineParser.Parse(args.ToList(), verb, options))
+                    {
+                        Client.OnError(Strings.InvalidUsage);
+                        return true;
+                    }
+
+                    verb.Execute(this, _context);
                 }
-
-                var options = new CommandLineParserOptions
+                finally
                 {
-                    Context = _context,
-                    Reporter = error => Client.OnError(error.ToString().TrimEnd())
-                };
-
-                if (!CommandLineParser.Parse(args.ToList(), verb, options))
-                {
-                    Client.OnError(Strings.InvalidUsage);
-                    return true;
+                    if (verb != null)
+                    {
+                        Release.Invoke(verb);
+                    }
                 }
-
-                verb.Execute(this, _context);
             }
 
             return !attrib.Exits;
         }
 
-        private IVerb DefaultResolver(Type implementingType)
+        private IVerb DefaultResolve(Type implementingType)
         {
             var constructor = implementingType.GetConstructor(Type.EmptyTypes);
             if (constructor == null)
@@ -306,6 +323,11 @@ namespace NClap.Repl
             }
 
             return (IVerb)verb;
+        }
+
+        private void DefaultRelease(IVerb verb)
+        {
+            // do nothing
         }
     }
 }

@@ -426,7 +426,7 @@ namespace NClap.Parser
         /// filled out by this parser instance.</param>
         /// <returns>The candidate completions for the specified token.
         /// </returns>
-        public IEnumerable<string> GetCompletions(IEnumerable<string> tokens, int indexOfTokenToComplete, Func<object> destObjectFactory)
+        public IEnumerable<string> GetCompletions(IEnumerable<string> tokens, int indexOfTokenToComplete, Func<object> destObjectResolve, Action<object> destObjectRelease)
         {
             Func<IEnumerable<string>> emptyCompletions = Enumerable.Empty<string>;
 
@@ -445,55 +445,67 @@ namespace NClap.Parser
             var tokenToComplete = tokenList[indexOfTokenToComplete];
 
             // Create a destination object if provided with a factory.
-            var inProgressParsedObject = destObjectFactory?.Invoke();
+            object inProgressParsedObject = null;
 
-            // Parse what we've seen thus far (before the token to complete).
-            var tokensToParse = tokenList.Take(indexOfTokenToComplete).ToList();
-            Parse(tokensToParse, inProgressParsedObject);
-
-            // See where we are.
-            var namedArgumentPrefix = TryGetNamedArgumentPrefix(tokenToComplete);
-            if (namedArgumentPrefix != null)
+            try
             {
-                var afterPrefix = tokenToComplete.Substring(namedArgumentPrefix.Length);
-                return GetNamedArgumentCompletions(tokenList, indexOfTokenToComplete, afterPrefix, inProgressParsedObject)
-                           .Select(completion => namedArgumentPrefix + completion);
-            }
+                inProgressParsedObject = destObjectResolve?.Invoke();
 
-            var answerFileArgumentPrefix = TryGetAnswerFilePrefix(tokenToComplete);
-            if (answerFileArgumentPrefix != null)
-            {
-                var filePath = tokenToComplete.Substring(answerFileArgumentPrefix.Length);
-                var parseContext = new ArgumentParseContext
+                // Parse what we've seen thus far (before the token to complete).
+                var tokensToParse = tokenList.Take(indexOfTokenToComplete).ToList();
+                Parse(tokensToParse, inProgressParsedObject);
+
+                // See where we are.
+                var namedArgumentPrefix = TryGetNamedArgumentPrefix(tokenToComplete);
+                if (namedArgumentPrefix != null)
                 {
-                    FileSystemReader = _options.FileSystemReader,
-                    ParserContext = _options.Context
-                };
+                    var afterPrefix = tokenToComplete.Substring(namedArgumentPrefix.Length);
+                    return GetNamedArgumentCompletions(tokenList, indexOfTokenToComplete, afterPrefix, inProgressParsedObject)
+                               .Select(completion => namedArgumentPrefix + completion);
+                }
 
-                var completionContext = new ArgumentCompletionContext
+                var answerFileArgumentPrefix = TryGetAnswerFilePrefix(tokenToComplete);
+                if (answerFileArgumentPrefix != null)
                 {
-                    ParseContext = parseContext,
-                    TokenIndex = indexOfTokenToComplete,
-                    Tokens = tokenList,
-                    InProgressParsedObject = inProgressParsedObject
-                };
+                    var filePath = tokenToComplete.Substring(answerFileArgumentPrefix.Length);
+                    var parseContext = new ArgumentParseContext
+                    {
+                        FileSystemReader = _options.FileSystemReader,
+                        ParserContext = _options.Context
+                    };
 
-                return ArgumentType.FileSystemPath.GetCompletions(completionContext, filePath)
-                           .Select(completion => answerFileArgumentPrefix + completion);
+                    var completionContext = new ArgumentCompletionContext
+                    {
+                        ParseContext = parseContext,
+                        TokenIndex = indexOfTokenToComplete,
+                        Tokens = tokenList,
+                        InProgressParsedObject = inProgressParsedObject
+                    };
+
+                    return ArgumentType.FileSystemPath.GetCompletions(completionContext, filePath)
+                               .Select(completion => answerFileArgumentPrefix + completion);
+                }
+
+                // It must be a positional argument?
+                Argument positionalArg;
+                if (!_positionalArguments.TryGetValue(_nextPositionalArgIndex, out positionalArg))
+                {
+                    return emptyCompletions();
+                }
+
+                return positionalArg.GetCompletions(
+                    tokenList,
+                    indexOfTokenToComplete,
+                    tokenToComplete,
+                    inProgressParsedObject);
             }
-
-            // It must be a positional argument?
-            Argument positionalArg;
-            if (!_positionalArguments.TryGetValue(_nextPositionalArgIndex, out positionalArg))
+            finally
             {
-                return emptyCompletions();
+                if (inProgressParsedObject != null)
+                {
+                    destObjectRelease?.Invoke(inProgressParsedObject);
+                }
             }
-
-            return positionalArg.GetCompletions(
-                tokenList,
-                indexOfTokenToComplete,
-                tokenToComplete,
-                inProgressParsedObject);
         }
 
         /// <summary>
