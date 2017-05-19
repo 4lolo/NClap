@@ -34,10 +34,6 @@ namespace NClap.Metadata
         /// </summary>
         public string HelpText { get; set; }
 
-        /// <summary>
-        /// True to indicate that this verb will "exit" the contained REPL;
-        /// false otherwise.
-        /// </summary>
-        public bool Exits { get; set; }
+        public IVerb Instance { get; set; }
     }
 }

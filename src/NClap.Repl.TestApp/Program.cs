@@ -5,6 +5,7 @@ using NClap.Metadata;
 using NClap.Parser;
 using NClap.Types;
 using NClap.Utilities;
+using NClap.Repl;
 
 namespace NClap.Repl.TestApp
 {
@@ -14,11 +15,13 @@ namespace NClap.Repl.TestApp
         Verb2
     }
 
+    [Verb]
     class SetPrompt
     {
         [PositionalArgument(ArgumentFlags.Required)] public string Prompt { get; set; }
     }
 
+    [Verb(HelpText = "Displays verb help")]
     class Here : IVerb
     {
         [NamedArgument(ArgumentFlags.AtMostOnce)] public int Hello { get; set; }
@@ -48,6 +51,7 @@ namespace NClap.Repl.TestApp
             new[] { "xyzzy", "fizzy" };
     }
 
+    [Verb(HelpText = "Simple here command")]
     class HereToo : IVerb
     {
         [PositionalArgument(ArgumentFlags.Required, Completer = typeof(SomeArgCompleter))] public string SomeArg { get; set; }
@@ -59,15 +63,6 @@ namespace NClap.Repl.TestApp
 
     class Program
     {
-        private static VerbDescriptor[] verbs =
-        {
-            new HelpVerbDescriptor { Name = "Help", HelpText = "Displays verb help" },
-            new VerbDescriptor { Name = "Here", ImplementingType = typeof(Here), HelpText = "Simple here command" },
-            new VerbDescriptor { Name = "HereToo", ImplementingType = typeof(HereToo), HelpText = "Here too, right?" },
-            new VerbDescriptor { Name = "SetPromptXy", ImplementingType = typeof(SetPrompt) },
-            new VerbDescriptor { Name = "Exit", Exits = true, HelpText = "Exits the loop" }
-        };
-
         private static int Main(string[] args)
         {
             var programArgs = new ProgramArguments();
@@ -100,7 +95,7 @@ namespace NClap.Repl.TestApp
                 KeyBindingSet = keyBindingSet
             };
 
-            Loop.Execute(verbs, parameters, options);
+            Loop.Execute(VerbResolver.ResolveAll(), parameters, options);
 
             Console.WriteLine("Exited loop.");
         }

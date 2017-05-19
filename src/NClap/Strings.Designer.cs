@@ -558,5 +558,15 @@ namespace NClap {
                 return ResourceManager.GetString("ValueMayNotBe", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error occured while executing verb &apos;{0}&apos;:
+        ///{1}.
+        /// </summary>
+        internal static string VerbExecutionError {
+            get {
+                return ResourceManager.GetString("VerbExecutionError", resourceCulture);
+            }
+        }
     }
 }

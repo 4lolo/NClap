@@ -1,4 +1,5 @@
-﻿using NClap.Metadata;
+﻿using Common.Logging;
+using NClap.Metadata;
 using System;
 
 namespace NClap.Repl
@@ -22,5 +23,10 @@ namespace NClap.Repl
         /// Function that resolves provided type instance
         /// </summary>
         public Action<IVerb> Release { get; set; }
+
+        /// <summary>
+        /// Logger to be used for logging errors
+        /// </summary>
+        public ILog Log { get; set; }
     }
 }

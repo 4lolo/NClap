@@ -286,4 +286,8 @@ Reason:
   <data name="ValueMayNotBe" xml:space="preserve">
     <value>The value not be equal to '{0}'.</value>
   </data>
+  <data name="VerbExecutionError" xml:space="preserve">
+    <value>Error occured while executing verb '{0}':
+{1}</value>
+  </data>
 </root>

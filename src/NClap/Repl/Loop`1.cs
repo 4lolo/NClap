@@ -5,6 +5,7 @@ using System.Globalization;
 using NClap.ConsoleInput;
 using NClap.Metadata;
 using NClap.Parser;
+using Common.Logging;
 
 namespace NClap.Repl
 {
@@ -17,6 +18,7 @@ namespace NClap.Repl
     {
         private readonly TContext _context;
         private readonly IReadOnlyDictionary<string, VerbDescriptor> _verbMap;
+        private readonly ILog _log;
 
         /// <summary>
         /// Constructor that requires an explicit implementation of
@@ -83,10 +85,13 @@ namespace NClap.Repl
             Resolve = options?.Resolve ?? DefaultResolve;
             Release = options?.Release ?? DefaultRelease;
 
+            _log = options?.Log;
             _context = context;
 
             _verbMap = verbs.ToDictionary(v => v.Name.ToLowerInvariant(), v => v);
         }
+
+        public bool Exit { get; set; }
 
         /// <summary>
         /// The client associated with this loop.
@@ -171,19 +176,27 @@ namespace NClap.Repl
             }
 
             var implementingType = attrib.ImplementingType;
+            var instance = attrib.Instance;
             if (implementingType == null)
             {
                 return emptyCompletions();
             }
 
             var options = new CommandLineParserOptions { Context = _context };
+            Func<object> resolve = instance == null ? 
+                new Func<object>(() => Resolve(implementingType)) : 
+                new Func<object>(() => instance);
+            Action<object> release = instance == null ? 
+                new Action<object>(v => Release((IVerb)v)) : 
+                new Action<object>(v => {});
+
             return CommandLineParser.GetCompletions(
                 implementingType,
                 tokenList.Skip(1),
                 indexOfTokenToComplete - 1,
                 options,
-                () => Resolve(implementingType),
-                (v) => Release((IVerb)v));
+                resolve,
+                release);
         }
 
         private bool ExecuteOnce()
@@ -192,6 +205,14 @@ namespace NClap.Repl
 
             var args = ReadInput();
 
+            return ExecuteOnce(args);
+        }
+
+        /// <summary>
+        /// Executes one command.
+        /// </summary>
+        public bool ExecuteOnce(string[] args)
+        {
             if (args == null)
             {
                 return false;
@@ -267,12 +288,20 @@ namespace NClap.Repl
             }
 
             var implementingType = attrib.ImplementingType;
+            var instance = attrib.Instance;
+            Func<IVerb> resolve = instance == null ? 
+                new Func<IVerb>(() => Resolve(implementingType)) : 
+                new Func<IVerb>(() => instance);
+            Action<IVerb> release = instance == null ? 
+                new Action<IVerb>(v => Release(v)) : 
+                new Action<IVerb>(v => {});
+
             if (implementingType != null)
             {
                 IVerb verb = null;
                 try
                 {
-                    verb = Resolve.Invoke(implementingType);
+                    verb = resolve();
 
                     if (verb == null)
                     {
@@ -294,16 +323,26 @@ namespace NClap.Repl
 
                     verb.Execute(this, _context);
                 }
+                catch (Exception ex)
+                {
+                    string message = string.Format(Strings.VerbExecutionError, verbType, ex.Message);
+                    Client.OnError(message);
+                    this._log?.Error(message, ex);
+                }
                 finally
                 {
                     if (verb != null)
                     {
-                        Release.Invoke(verb);
+                        release(verb);
                     }
                 }
             }
+            else
+            {
+                Client.OnError(Strings.NoAccessibleParameterlessConstructor);
+            }
 
-            return !attrib.Exits;
+            return !this.Exit;
         }
 
         private IVerb DefaultResolve(Type implementingType)

@@ -7,6 +7,7 @@ namespace NClap.Repl
 {
     public interface ILoop
     {
+        bool Exit { get; set; }
         ILoopClient Client { get; }
         IConsoleReader ConsoleReader { get; }
         char? EndOfLineCommentCharacter { get; }

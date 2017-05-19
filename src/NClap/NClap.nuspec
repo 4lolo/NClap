@@ -1,8 +1,8 @@
 <?xml version="1.0" ?> 
 <package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-    <id>NClap</id> 
-    <version>1.4.1</version> 
+    <id>NClapEx</id> 
+    <version>0.0.7</version> 
     <authors>reubeno</authors>
     <owners>reubeno</owners>
     <tags>NClap .NET Command Line CommandLine Argument Parser CLI Interactive Shell</tags>
